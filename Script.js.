@@ -1,0 +1,127 @@
+
+const products = [
+  {id:1,name:"Memory Photo Keychain",category:"Personalized",price:199,tag:"CUSTOM FAVOURITE",description:"A favourite moment, close at hand.",image:"https://images.unsplash.com/photo-1611652022419-a9419f74343d?auto=format&fit=crop&w=700&q=80"},
+  {id:2,name:"Initial Charm",category:"Acrylic",price:149,tag:"MINIMAL",description:"A simple touch that feels like yours.",image:"https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&w=700&q=80"},
+  {id:3,name:"Little Joy Keychain",category:"Cute",price:129,tag:"PLAYFUL",description:"A cheerful companion for every day.",image:"https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=700&q=80"},
+  {id:4,name:"Name Tag Keychain",category:"Personalized",price:179,tag:"MADE FOR YOU",description:"Your name, your style, your keepsake.",image:"https://images.unsplash.com/photo-1611591437281-460bfbe1220a?auto=format&fit=crop&w=700&q=80"}
+];
+
+let cart = [];
+const $ = s => document.querySelector(s);
+const money = n => "₹" + n.toLocaleString("en-IN");
+
+function renderProducts(filter="All") {
+  const list = products.filter(p => filter==="All" || p.category===filter);
+  $("#productGrid").innerHTML = list.map(p => `
+    <article class="product-card">
+      <div class="product-image">
+        <img src="${p.image}" alt="${p.name}" loading="lazy">
+        <span class="product-tag">${p.tag}</span>
+      </div>
+      <div class="product-info">
+        <h3>${p.name}</h3>
+        <p>${p.description}</p>
+        <div class="product-buy">
+          <strong>${money(p.price)}</strong>
+          <button class="add-button" onclick="addToCart(${p.id})">+ Add to bag</button>
+        </div>
+      </div>
+    </article>`).join("");
+}
+
+function addToCart(id) {
+  const item = cart.find(x => x.id===id);
+  if(item) item.qty++;
+  else cart.push({id,qty:1});
+  renderCart();
+}
+
+function changeQty(id,delta) {
+  const item = cart.find(x => x.id===id);
+  if(!item) return;
+  item.qty += delta;
+  if(item.qty<=0) cart=cart.filter(x=>x.id!==id);
+  renderCart();
+}
+
+function renderCart() {
+  const count=cart.reduce((a,b)=>a+b.qty,0);
+  const total=cart.reduce((a,b)=>a+products.find(p=>p.id===b.id).price*b.qty,0);
+  $("#cartCount").textContent=count;
+  $("#cartTotal").textContent=money(total);
+  $("#cartItems").innerHTML=cart.length ? cart.map(x=>{
+    const p=products.find(y=>y.id===x.id);
+    return `<div class="cart-row">
+      <div><strong>${p.name}</strong><small>${money(p.price)} each</small></div>
+      <div class="qty-controls">
+        <button onclick="changeQty(${p.id},-1)">−</button>
+        <span>${x.qty}</span>
+        <button onclick="changeQty(${p.id},1)">+</button>
+      </div>
+    </div>`;
+  }).join("") : '<p class="empty-cart">Your bag is waiting for something lovely.</p>';
+}
+
+function toggleCart(open) {
+  $("#cartDrawer").classList.toggle("open",open);
+  $("#cartOverlay").classList.toggle("open",open);
+}
+
+function toast(msg) {
+  const el=$("#toast");
+  el.textContent=msg;
+  el.classList.add("show");
+  setTimeout(()=>el.classList.remove("show"),2200);
+}
+
+$("#filters").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-filter]");
+  if(!b)return;
+  document.querySelectorAll(".filter").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active");
+  renderProducts(b.dataset.filter);
+});
+
+$("#cartOpen").addEventListener("click",()=>toggleCart(true));
+$("#cartClose").addEventListener("click",()=>toggleCart(false));
+$("#cartOverlay").addEventListener("click",()=>toggleCart(false));
+$("#menuToggle").addEventListener("click",()=>$("#mainNav").classList.toggle("open"));
+
+document.querySelectorAll("#mainNav a").forEach(a=>
+  a.addEventListener("click",()=>$("#mainNav").classList.remove("open"))
+);
+
+const BUSINESS_WHATSAPP="919363978844";
+
+$("#customForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  const d=new FormData(e.target);
+  const message=[
+    "Hello WE Keychains! I'd like a custom keychain.",
+    "Name: "+d.get("name"),
+    "WhatsApp: "+d.get("phone"),
+    "Type: "+d.get("type"),
+    "Idea: "+(d.get("idea") || "Let's discuss my design.")
+  ].join("\n");
+  window.open("https://wa.me/"+BUSINESS_WHATSAPP+"?text="+encodeURIComponent(message),"_blank");
+});
+
+$("#checkoutButton").addEventListener("click",()=>{
+  if(!cart.length){toast("Your bag is empty.");return;}
+  const lines=cart.map(x=>{
+    const p=products.find(y=>y.id===x.id);
+    return `${p.name} x ${x.qty} — ${money(p.price*x.qty)}`;
+  });
+  const total=cart.reduce((a,b)=>a+products.find(p=>p.id===b.id).price*b.qty,0);
+  const message=[
+    "Hello WE Keychains! I'd like to place an order:",
+    ...lines,
+    "Subtotal: "+money(total),
+    "Please let me know the next steps."
+  ].join("\n");
+  window.open("https://wa.me/"+BUSINESS_WHATSAPP+"?text="+encodeURIComponent(message),"_blank");
+});
+
+$("#year").textContent=new Date().getFullYear();
+renderProducts();
+renderCart();
